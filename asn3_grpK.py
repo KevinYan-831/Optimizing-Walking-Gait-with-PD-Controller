@@ -5,7 +5,11 @@ import threading  # use threading to run PID control and tripod simultaneously
 import ros_robot_controller_sdk as rrc
 import sonar
 import matplotlib.pyplot as plt
-from collections import deque
+import numpy as np
+import math
+
+
+
 
 
 
@@ -95,6 +99,73 @@ P_LEFT = 870
 DISTANCE_PLAN = 340
 DISTANCE_BLOCK = 400
 
+
+class Polynomial_Regression:
+    #initialize the regression model with custom degrees and weights
+    def __init__(self, M, y, degree, alpha, iterations):
+        self.M = M
+        self.y = y
+        self.degree = degree
+        self.weights = None
+        self.alpha = alpha
+        self.iterations = iterations
+    #input matrix M contain the input parameters for our testing trials, num of rows is number of trials, and columns are the input parameters
+    #The input matrix should look like [[rot, lif, dur, kp, kd], ... ]
+    def init_features_matrix(self):
+        n_trial, n_params = self.M.shape
+        features = [np.ones(n_trial)]
+        #we need to normalize the input parameters, since they all use different scale
+        mean = np.mean(self.M, axis=0)
+        std = np.std(self.M, axis=0)
+        M_norm = (self.M - mean) / std
+
+        for i in range(1, self.degree + 1):
+            for j in range(n_params):
+                features.append(M_norm[:, j] ** i)
+        
+        return np.column_stack(features)
+    #y is the measurement of trials, for instance, the distance traveled, or the change of heading
+    def gradient_descent(self):
+        M_norm = self.init_features_matrix(self.M)
+        #initialize coefficients array
+        self.weights = np.zeros(M_norm.shape[1])
+        #begin the training loop
+        print(f"Start Training: Learning Rate = {self.alpha} and Iterations = {self.iterations}\n")
+        for i in range(self.iterations):
+            print(f"== Iteration {i} ==\n")
+            #prediction based on the given weights and normalized parameters
+            y_pred = np.dot(M_norm, self.weights)
+            error = y_pred - self.y
+            #Calculate the gradient
+            gradient = (1 / M_norm.shape[0]) * np.dot(M_norm.T, error)
+            #update the weight of the model
+            self.weights = self.weights - (self.alpha * gradient)
+
+            #print the error every 100 iterations
+            if i % 100 == 0:
+                print(f"Iteration {i}, Cost = {self.cost_function(error)}")
+            
+
+    
+    #calculate the MSE cost function, gradient descent is to minimize this value
+    def cost_function(self, error):
+        return (1 / (2 * self.M.shape[0])) * np.sum(error ** 2)
+
+
+
+
+
+
+
+
+    
+    
+
+
+    
+
+
+
 def set_all_default():
     board.bus_servo_set_position(1, [
         # Right Front
@@ -137,6 +208,7 @@ def platform_right(dur):
 def platform_default(dur):
     duration = dur
     board.bus_servo_set_position(duration, [[P_ID, P_DEFAULT]])
+#for one cycle, it takes up 4 times (dur + pu)
 def tripod(dur=0.3, pu=0.3, lif=100, rot=105):
     duration = dur
     pause = pu
@@ -144,6 +216,7 @@ def tripod(dur=0.3, pu=0.3, lif=100, rot=105):
     rotation = rot
 
     t0 = time.perf_counter()
+    print(f"Start of the Cycle Gait: {s.getdistance()}")
 
     board.bus_servo_set_position(duration, [
         [RB_MIDDLE_ID, RB_MIDDLE_DEFAULT - lift],
@@ -187,6 +260,8 @@ def tripod(dur=0.3, pu=0.3, lif=100, rot=105):
         [LF_MIDDLE_ID, LF_MIDDLE_DEFAULT]
     ])  # Putting down
     time.sleep(pause)
+    print(f"End of the Cycle Gait: {s.getdistance()}")
+
 def turn_left(dur, pu, rot, lif):
     duration = dur
     pause = pu
@@ -275,8 +350,14 @@ def turn_around_180():
 
 
 
-            
-        
+#for one trial, let the robot walks for 5 cycles
+def run_one_trial(dur, pu, lif, rot, kp, kd):
+    for i in range(5):
+        tripod(dur, pu, lif, rot)
+
+
+
+
         
 
 
@@ -287,6 +368,7 @@ if __name__ == "__main__":
     set_all_default()
     
     start_time = time.time()
+
 
     
 
