@@ -7,6 +7,7 @@ import sonar
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import polyregression as pr
 
 
 
@@ -99,70 +100,13 @@ P_LEFT = 870
 DISTANCE_PLAN = 340
 DISTANCE_BLOCK = 400
 
+#Bounds for the parameters
+ROT_BOUNDS = (0, 200)
+LIF_BOUNDS = (0, 200)
+DUR_BOUNDS = (0.1, 0.5)
+KP_BOUNDS = (0, 1)
+KD_BOUNDS = (0, 1)
 
-class Polynomial_Regression:
-    #initialize the regression model with custom degrees and weights
-    def __init__(self, M, y, degree, alpha, iterations):
-        self.M = M
-        self.y = y
-        self.degree = degree
-        self.weights = None
-        self.alpha = alpha
-        self.iterations = iterations
-    #input matrix M contain the input parameters for our testing trials, num of rows is number of trials, and columns are the input parameters
-    #The input matrix should look like [[rot, lif, dur, kp, kd], ... ]
-    def init_features_matrix(self):
-        n_trial, n_params = self.M.shape
-        features = [np.ones(n_trial)]
-        #we need to normalize the input parameters, since they all use different scale
-        mean = np.mean(self.M, axis=0)
-        std = np.std(self.M, axis=0)
-        M_norm = (self.M - mean) / std
-
-        for i in range(1, self.degree + 1):
-            for j in range(n_params):
-                features.append(M_norm[:, j] ** i)
-        
-        return np.column_stack(features)
-    #y is the measurement of trials, for instance, the distance traveled, or the change of heading
-    def gradient_descent(self):
-        M_norm = self.init_features_matrix(self.M)
-        #initialize coefficients array
-        self.weights = np.zeros(M_norm.shape[1])
-        #begin the training loop
-        print(f"Start Training: Learning Rate = {self.alpha} and Iterations = {self.iterations}\n")
-        for i in range(self.iterations):
-            print(f"== Iteration {i} ==\n")
-            #prediction based on the given weights and normalized parameters
-            y_pred = np.dot(M_norm, self.weights)
-            error = y_pred - self.y
-            #Calculate the gradient
-            gradient = (1 / M_norm.shape[0]) * np.dot(M_norm.T, error)
-            #update the weight of the model
-            self.weights = self.weights - (self.alpha * gradient)
-
-            #print the error every 100 iterations
-            if i % 100 == 0:
-                print(f"Iteration {i}, Cost = {self.cost_function(error)}")
-            
-
-    
-    #calculate the MSE cost function, gradient descent is to minimize this value
-    def cost_function(self, error):
-        return (1 / (2 * self.M.shape[0])) * np.sum(error ** 2)
-
-
-
-
-
-
-
-
-    
-    
-
-
-    
 
 
 
@@ -350,15 +294,51 @@ def turn_around_180():
 
 
 
-#for one trial, let the robot walks for 5 cycles
-def run_one_trial(dur, pu, lif, rot, kp, kd):
-    for i in range(5):
-        tripod(dur, pu, lif, rot)
+# Generate experiment params combination within the bounds and then run the robot and collect the data
+def gen_params(n_trials):
+    params_list = []
+    for _ in range(n_trials):
+        rot = np.random.uniform(ROT_BOUNDS[0], ROT_BOUNDS[1])
+        lif = np.random.uniform(LIF_BOUNDS[0], LIF_BOUNDS[1])
+        dur = np.random.uniform(DUR_BOUNDS[0], DUR_BOUNDS[1])
+        kp = np.random.uniform(KP_BOUNDS[0], KP_BOUNDS[1])
+        kd = np.random.uniform(KD_BOUNDS[0], KD_BOUNDS[1])
+        params_list.append([rot, lif, dur, kp, kd])
+    return np.array(params_list)
+
+    
 
 
+# After we have the model trained to predict the distance and heading given input
+# we create a reward function and then find the best model parameter that has the highest reward
+def reward_function(params, pred_distance, pred_heading):
+    # For simplicity, we define the reward as a weighted sum of distance and heading
+    distance_weight = 1.0
+    heading_weight = 0.5
 
+    reward = (distance_weight * pred_distance.predict(params)) - (heading_weight * abs(pred_heading.predict(params)))
+    return reward
 
+# Generate random parameters within the bound, then find the best combindation of parameters that has the highest reward
+def find_best_params(pred_distance, pred_heading, bounds, n_candidates=5000):
+
+    # Generate random candidates within bounds
+    candidates = []
+    for _ in range(n_candidates):
+        candidate = [np.random.uniform(b[0], b[1]) for b in bounds]
+        candidates.append(candidate)
+
+    # Calculate reward for every candidate
+    rewards = []
+    for candidate in candidates:
+        r = reward_function(candidate, pred_distance, pred_heading)
+        rewards.append(r)
+        print(f"Candidate: {candidate}, Reward: {r}")
         
+    # Find the one with the highest reward
+    best_idx = np.argmax(rewards)
+    return candidates[best_idx]
+      
 
 
     
@@ -368,6 +348,31 @@ if __name__ == "__main__":
     set_all_default()
     
     start_time = time.time()
+
+    # Generate params to test, 50 trials
+    test_params = gen_params(50)
+
+    # create data for model input
+    # M =
+    # y_distance = 
+    # y_heading = 
+
+
+    # Create the model for both distance and heading
+    # model_distance = pr.Polynomial_Regression(M, y_distance, degree=5, alpha=0.01, iterations=1000)
+    # model_heading = pr.Polynomial_Regression(M, y_heading, degree=5, alpha=0.01, iterations=1000)
+
+    # #Training two models
+    # print("Training model for distance...")
+    # model_distance.gradient_descent(M, y_distance)
+    # print("Training model for heading...")
+    # model_heading.gradient_descent(M, y_heading)
+
+    # #Find the best parameters that has the highest reward
+    # bounds = np.array([ROT_BOUNDS, LIF_BOUNDS, DUR_BOUNDS, KP_BOUNDS, KD_BOUNDS])
+    # best_params = find_best_params(model_distance, model_heading, bounds)
+    # print(f"Best Parameters: {best_params}")
+
 
 
     
