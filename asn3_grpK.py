@@ -294,9 +294,11 @@ def turn_around_180():
 
 
 
-# Generate experiment params and split them into test/validate sets.
-# test/validate ratio = 0.8
-def gen_params(n_trials):
+# Generate experiment params and split into train/validate/test sets.
+def gen_params(n_trials, train_ratio=0.7, validate_ratio=0.2, test_ratio=0.1):
+    if not np.isclose(train_ratio + validate_ratio + test_ratio, 1.0):
+        raise ValueError("train_ratio + validate_ratio + test_ratio must equal 1.0")
+
     params_list = []
     for _ in range(n_trials):
         rot = np.random.uniform(ROT_BOUNDS[0], ROT_BOUNDS[1])
@@ -309,11 +311,15 @@ def gen_params(n_trials):
     params = np.array(params_list)
     np.random.shuffle(params)
 
-    # If test/validate = 0.8, test fraction is 0.8 / (1 + 0.8).
-    test_size = int(n_trials * (0.8 / 1.8))
-    test_params = params[:test_size]
-    validate_params = params[test_size:]
-    return test_params, validate_params
+    train_size = int(n_trials * train_ratio)
+    validate_size = int(n_trials * validate_ratio)
+    # Keep remainder in test split so all trials are used.
+    test_size = n_trials - train_size - validate_size
+
+    train_params = params[:train_size]
+    validate_params = params[train_size:train_size + validate_size]
+    test_params = params[train_size + validate_size:train_size + validate_size + test_size]
+    return train_params, validate_params, test_params
 
     
 
@@ -325,7 +331,9 @@ def reward_function(params, pred_distance, pred_heading):
     distance_weight = 1.0
     heading_weight = 0.5
 
-    reward = (distance_weight * pred_distance.predict(params)) - (heading_weight * abs(pred_heading.predict(params)))
+    pred_d = float(pred_distance.predict(params).reshape(-1)[0])
+    pred_h = float(pred_heading.predict(params).reshape(-1)[0])
+    reward = (distance_weight * pred_d) - (heading_weight * abs(pred_h))
     return reward
 
 # Generate random parameters within the bound, then find the best combindation of parameters that has the highest reward
@@ -358,24 +366,47 @@ if __name__ == "__main__":
     
     start_time = time.time()
 
-    # Generate params for test/validate split, with test/validate = 0.8
-    test_params, validate_params = gen_params(50)
+    # Generate params for train/validate/test split, total 60 trials.
+    train_params, validate_params, test_params = gen_params(60)
 
     # create data for model input
-    # M =
-    # y_distance = 
-    # y_heading = 
+    M_train = train_params
+    M_validate = validate_params
+    M_test = test_params
+    # validate successful generation of params
+    print(M_train)
+    print(M_validate)
+    print(M_test)
+    
+    # y_distance_train =
+    # y_heading_train =
+    # y_distance_validate =
+    # y_heading_validate =
+    # y_distance_test =
+    # y_heading_test =
 
 
     # Create the model for both distance and heading
-    # model_distance = pr.Polynomial_Regression(M, y_distance, degree=5, alpha=0.01, iterations=1000)
-    # model_heading = pr.Polynomial_Regression(M, y_heading, degree=5, alpha=0.01, iterations=1000)
+    # model_distance = pr.Polynomial_Regression(degree=5, alpha=0.01, iterations=1000)
+    # model_heading = pr.Polynomial_Regression(degree=5, alpha=0.01, iterations=1000)
 
     # #Training two models
     # print("Training model for distance...")
-    # model_distance.gradient_descent(M, y_distance)
+    # model_distance.gradient_descent(M_train, y_distance_train)
     # print("Training model for heading...")
-    # model_heading.gradient_descent(M, y_heading)
+    # model_heading.gradient_descent(M_train, y_heading_train)
+
+    # # Validate models
+    # distance_val_metrics = model_distance.evaluate(M_validate, y_distance_validate)
+    # heading_val_metrics = model_heading.evaluate(M_validate, y_heading_validate)
+    # print(f"Distance validation metrics: {distance_val_metrics}")
+    # print(f"Heading validation metrics: {heading_val_metrics}")
+
+    # # Final test metrics
+    # distance_test_metrics = model_distance.evaluate(M_test, y_distance_test)
+    # heading_test_metrics = model_heading.evaluate(M_test, y_heading_test)
+    # print(f"Distance test metrics: {distance_test_metrics}")
+    # print(f"Heading test metrics: {heading_test_metrics}")
 
     # #Find the best parameters that has the highest reward
     # bounds = np.array([ROT_BOUNDS, LIF_BOUNDS, DUR_BOUNDS, KP_BOUNDS, KD_BOUNDS])
