@@ -294,7 +294,8 @@ def turn_around_180():
 
 
 
-# Generate experiment params combination within the bounds and then run the robot and collect the data
+# Generate experiment params and split them into test/validate sets.
+# test/validate ratio = 0.8
 def gen_params(n_trials):
     params_list = []
     for _ in range(n_trials):
@@ -304,7 +305,15 @@ def gen_params(n_trials):
         kp = np.random.uniform(KP_BOUNDS[0], KP_BOUNDS[1])
         kd = np.random.uniform(KD_BOUNDS[0], KD_BOUNDS[1])
         params_list.append([rot, lif, dur, kp, kd])
-    return np.array(params_list)
+
+    params = np.array(params_list)
+    np.random.shuffle(params)
+
+    # If test/validate = 0.8, test fraction is 0.8 / (1 + 0.8).
+    test_size = int(n_trials * (0.8 / 1.8))
+    test_params = params[:test_size]
+    validate_params = params[test_size:]
+    return test_params, validate_params
 
     
 
@@ -349,8 +358,8 @@ if __name__ == "__main__":
     
     start_time = time.time()
 
-    # Generate params to test, 50 trials
-    test_params = gen_params(50)
+    # Generate params for test/validate split, with test/validate = 0.8
+    test_params, validate_params = gen_params(50)
 
     # create data for model input
     # M =
@@ -381,4 +390,3 @@ if __name__ == "__main__":
 
 
     
-
