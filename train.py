@@ -198,16 +198,38 @@ if __name__ == '__main__':
     print("==Testing Params==")
     print(M_test)
 
+    # Choose the best degree for the polynomial regression model based on the validation set
+    degree_candidates = [1, 2, 3, 4, 5]
+
+    best_deg_dist, best_mod_dist, dist_results = pr.choose_best_degree(
+        M_train, y_distance_train,
+        M_validate, y_distance_validate,
+        degree_candidates, alpha=0.01, iterations=2000
+    )
+
+    best_deg_head, best_mod_head, head_results = pr.choose_best_degree(
+        M_train, y_heading_train,
+        M_validate, y_heading_validate,
+        degree_candidates, alpha=0.01, iterations=2000
+    )
+
+    print("Best degree (distance):", best_deg_dist)
+    print("Best degree (heading):", best_deg_head)
+
+    # final training dataset includes both training and validation data to maximize data for final model training before testing
+    M_final = np.vstack([M_train, M_validate])
+    y_dist_final = np.concatenate([y_distance_train, y_distance_validate])
+    y_head_final = np.concatenate([y_heading_train, y_heading_validate])
 
     # Create the model for both distance and heading
-    model_distance = pr.Polynomial_Regression(degree=5, alpha=0.01, iterations=10000)
-    model_heading = pr.Polynomial_Regression(degree=5, alpha=0.01, iterations=100000)
+    model_distance = pr.Polynomial_Regression(degree=best_deg_dist, alpha=0.01, iterations=2000)
+    model_heading = pr.Polynomial_Regression(degree=best_deg_head, alpha=0.01, iterations=2000)
 
     #Training two models
     print("Training model for distance...")
-    model_distance.gradient_descent(M_train, y_distance_train)
+    model_distance.gradient_descent(M_final, y_dist_final)
     print("Training model for heading...")
-    model_heading.gradient_descent(M_train, y_heading_train)
+    model_heading.gradient_descent(M_final, y_head_final)
 
     #Find the best parameters that has the highest reward
     bounds = np.array([ROT_BOUNDS, LIF_BOUNDS, DUR_BOUNDS, KP_BOUNDS, KD_BOUNDS])

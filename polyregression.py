@@ -86,3 +86,36 @@ class Polynomial_Regression:
     # calculate the MSE cost function, gradient descent is to minimize this value
     def cost_function(self, M, error):
         return (1 / (2 * M.shape[0])) * np.sum(error ** 2)
+
+
+def choose_best_degree(M_train, y_train, M_validate, y_validate, degree_candidates, alpha, iterations):
+    M_train = np.asarray(M_train)
+    y_train = np.asarray(y_train)
+    M_validate = np.asarray(M_validate)
+    y_validate = np.asarray(y_validate)
+
+    if M_train.shape[0] != y_train.shape[0]:
+        raise ValueError("Distance and heading data collection has different length.")
+    if M_validate.shape[0] != y_validate.shape[0]:
+        raise ValueError("Distance and heading data collection has different length.")
+    if len(degree_candidates) == 0:
+        raise ValueError("degree_candidates cannot be empty.")
+
+    best_degree = None
+    best_mse = float("inf")
+    best_model = None
+    degree_results = []
+
+    for degree in degree_candidates:
+        model = Polynomial_Regression(degree=degree, alpha=alpha, iterations=iterations)
+        model.gradient_descent(M_train, y_train)
+        metrics = model.evaluate(M_validate, y_validate)
+        mse = metrics["mse"]
+        degree_results.append({"degree": degree, "mse": mse, "mae": metrics["mae"], "r2": metrics["r2"]})
+
+        if mse < best_mse:
+            best_mse = mse
+            best_degree = degree
+            best_model = model
+
+    return best_degree, best_model, degree_results
