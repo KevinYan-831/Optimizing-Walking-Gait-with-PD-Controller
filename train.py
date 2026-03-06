@@ -64,23 +64,33 @@ def plot_loss_function(distance_model, heading_model, show=True, save_path=None)
     if distance_loss.size == 0 and heading_loss.size == 0:
         raise ValueError("No loss history found. Train model(s) first using gradient_descent().")
 
-    plt.figure(figsize=(10, 5))
     if distance_loss.size > 0:
+        plt.figure(figsize=(10, 5))
         plt.plot(distance_loss, label="Distance Loss", linewidth=2)
+        plt.xlabel("Iteration")
+        plt.ylabel("MSE Cost")
+        plt.title("Distance Loss vs Iteration")
+        plt.grid(True, linestyle="--", alpha=0.4)
+        plt.legend()
+        plt.tight_layout()
+        if save_path:
+            plt.savefig(f"{save_path}_distance.png", dpi=150, bbox_inches="tight")
+        if show:
+            plt.show()
+
     if heading_loss.size > 0:
+        plt.figure(figsize=(10, 5))
         plt.plot(heading_loss, label="Heading Loss", linewidth=2)
-
-    plt.xlabel("Iteration")
-    plt.ylabel("MSE Cost")
-    plt.title("Training Loss vs Iteration")
-    plt.grid(True, linestyle="--", alpha=0.4)
-    plt.legend()
-    plt.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches="tight")
-    if show:
-        plt.show()
+        plt.xlabel("Iteration")
+        plt.ylabel("MSE Cost")
+        plt.title("Heading Loss vs Iteration")
+        plt.grid(True, linestyle="--", alpha=0.4)
+        plt.legend()
+        plt.tight_layout()
+        if save_path:
+            plt.savefig(f"{save_path}_heading.png", dpi=150, bbox_inches="tight")
+        if show:
+            plt.show()
 
 def plot_reward_function(rewards, show=True, save_path=None):
     rewards = np.asarray(rewards, dtype=float)
@@ -141,7 +151,7 @@ def load_dataset(json_path="data/gait_dataset.json"):
     with dataset_path.open("r", encoding="utf-8-sig") as f:
         data = json.load(f)
 
-    M_train = np.array(data["M_train"], dtype=float)
+    M_train = np.array(data["M_train"][:31], dtype=float)
     M_validate = np.array(data["M_validate"], dtype=float)
     M_test = np.array(data["M_test"], dtype=float)
 
@@ -190,8 +200,8 @@ if __name__ == '__main__':
 
 
     # Create the model for both distance and heading
-    model_distance = pr.Polynomial_Regression(degree=5, alpha=0.01, iterations=1000)
-    model_heading = pr.Polynomial_Regression(degree=5, alpha=0.01, iterations=1000)
+    model_distance = pr.Polynomial_Regression(degree=5, alpha=0.01, iterations=10000)
+    model_heading = pr.Polynomial_Regression(degree=5, alpha=0.01, iterations=100000)
 
     #Training two models
     print("Training model for distance...")
