@@ -4,6 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import polyregression as pr
 
+# Display numpy floats in regular decimal form
+np.set_printoptions(
+    suppress=True,
+    formatter={"float_kind": lambda x: f"{x:.2f}"},
+    linewidth=180
+)
+
 # Discrete candidate values for parameter generation.
 ROT_VALUES = np.arange(20, 150, 1)              
 LIF_VALUES = np.arange(20, 150, 1)              

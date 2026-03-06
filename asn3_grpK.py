@@ -4,17 +4,9 @@ import signal
 import threading  # use threading to run PID control and tripod simultaneously
 import ros_robot_controller_sdk as rrc
 import sonar
-import matplotlib.pyplot as plt
-import numpy as np
-import math
-import polyregression as pr
 
-# Display numpy floats in regular decimal form
-np.set_printoptions(
-    suppress=True,
-    formatter={"float_kind": lambda x: f"{x:.2f}"},
-    linewidth=180
-)
+
+
 
 
 
@@ -106,19 +98,6 @@ P_LEFT = 870
 DISTANCE_PLAN = 340
 DISTANCE_BLOCK = 400
 
-# Discrete candidate values for parameter generation.
-ROT_VALUES = np.arange(20, 150, 1)              
-LIF_VALUES = np.arange(20, 150, 1)              
-DUR_VALUES = np.round(np.arange(0.1, 1.5, 0.1), 1) 
-KP_VALUES = np.round(np.arange(0.00, 2, 0.01), 2)  
-KD_VALUES = np.round(np.arange(0.00, 2, 0.01), 2)   
-
-# Keep bounds for optimization/search helpers.
-ROT_BOUNDS = (float(np.min(ROT_VALUES)), float(np.max(ROT_VALUES)))
-LIF_BOUNDS = (float(np.min(LIF_VALUES)), float(np.max(LIF_VALUES)))
-DUR_BOUNDS = (float(np.min(DUR_VALUES)), float(np.max(DUR_VALUES)))
-KP_BOUNDS = (float(np.min(KP_VALUES)), float(np.max(KP_VALUES)))
-KD_BOUNDS = (float(np.min(KD_VALUES)), float(np.max(KD_VALUES)))
 
 
 
