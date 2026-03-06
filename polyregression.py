@@ -11,6 +11,7 @@ class Polynomial_Regression:
         self.iterations = iterations
         self.mean = None
         self.std = None
+        self.loss_history = []
     # input matrix M contain the input parameters for our testing trials, num of rows is number of trials, and columns are the input parameters
     # The input matrix should look like [[rot, lif, dur, kp, kd], ... ]
 
@@ -43,6 +44,7 @@ class Polynomial_Regression:
         M_norm = self.init_features_matrix(M, fit=True)
         # initialize coefficients array
         self.weights = np.zeros(M_norm.shape[1])
+        self.loss_history = []
         # begin the training loop
         print(f"Start Training: Learning Rate = {self.alpha} and Iterations = {self.iterations}\n")
         for i in range(self.iterations):
@@ -50,6 +52,8 @@ class Polynomial_Regression:
             # prediction based on the given weights and normalized parameters
             y_pred = np.dot(M_norm, self.weights)
             error = y_pred - y
+            cost = self.cost_function(M_norm, error)
+            self.loss_history.append(cost)
             # Calculate the gradient
             gradient = (1 / M_norm.shape[0]) * np.dot(M_norm.T, error)
             # update the weight of the model
@@ -57,7 +61,7 @@ class Polynomial_Regression:
 
             # print the error every 100 iterations
             if i % 100 == 0:
-                print(f"Iteration {i}, Cost = {self.cost_function(M_norm, error)}")
+                print(f"Iteration {i}, Cost = {cost}")
             
     # Use updated weights to make prediction based on the input parameters
     def predict(self, params):

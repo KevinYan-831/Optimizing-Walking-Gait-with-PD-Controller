@@ -1,6 +1,7 @@
 # create data for model input
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 import polyregression as pr
 
 # Discrete candidate values for parameter generation.
@@ -29,25 +30,81 @@ def reward_function(params, pred_distance, pred_heading):
     reward = (distance_weight * pred_d) - (heading_weight * abs(pred_h))
     return reward
 
-# Generate random parameters within the bound, then find the best combindation of parameters that has the highest reward
-def find_best_params(pred_distance, pred_heading, bounds, n_candidates=5000):
+def plot_loss_function(distance_model, heading_model, show=True, save_path=None):
+    distance_loss = np.asarray(getattr(distance_model, "loss_history", []), dtype=float)
+    heading_loss = np.asarray(getattr(heading_model, "loss_history", []), dtype=float)
 
-    # Generate random candidates within bounds
+    if distance_loss.size == 0 and heading_loss.size == 0:
+        raise ValueError("No loss history found. Train model(s) first using gradient_descent().")
+
+    plt.figure(figsize=(10, 5))
+    if distance_loss.size > 0:
+        plt.plot(distance_loss, label="Distance Loss", linewidth=2)
+    if heading_loss.size > 0:
+        plt.plot(heading_loss, label="Heading Loss", linewidth=2)
+
+    plt.xlabel("Iteration")
+    plt.ylabel("MSE Cost")
+    plt.title("Training Loss vs Iteration")
+    plt.grid(True, linestyle="--", alpha=0.4)
+    plt.legend()
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    if show:
+        plt.show()
+
+def plot_reward_function(rewards, show=True, save_path=None):
+    rewards = np.asarray(rewards, dtype=float)
+    if rewards.size == 0:
+        raise ValueError("Rewards array is empty.")
+
+    best_so_far = np.maximum.accumulate(rewards)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(rewards, label="Reward per Candidate", alpha=0.35)
+    plt.plot(best_so_far, label="Best Reward So Far", linewidth=2)
+    plt.xlabel("Candidate Index")
+    plt.ylabel("Reward")
+    plt.title("Reward Progression")
+    plt.grid(True, linestyle="--", alpha=0.4)
+    plt.legend()
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    if show:
+        plt.show()
+
+def sample_reward_history(pred_distance, pred_heading, bounds, n_candidates=10000, verbose=True):
     candidates = []
+    rewards = []
+
     for _ in range(n_candidates):
         candidate = [np.random.uniform(b[0], b[1]) for b in bounds]
-        candidates.append(candidate)
-
-    # Calculate reward for every candidate
-    rewards = []
-    for candidate in candidates:
         r = reward_function(candidate, pred_distance, pred_heading)
+        candidates.append(candidate)
         rewards.append(r)
-        print(f"Candidate: {candidate}, Reward: {r}")
-        
-    # Find the one with the highest reward
-    best_idx = np.argmax(rewards)
-    return candidates[best_idx]
+
+        if verbose:
+            print(f"Candidate: {candidate}, Reward: {r}")
+
+    candidates = np.array(candidates)
+    rewards = np.array(rewards)
+    best_idx = int(np.argmax(rewards))
+    return candidates, rewards, best_idx
+
+# Generate random parameters within the bound, then find the best combindation of parameters that has the highest reward
+def find_best_params(pred_distance, pred_heading, bounds, n_candidates=10000, return_history=False):
+
+    candidates, rewards, best_idx = sample_reward_history(
+        pred_distance, pred_heading, bounds, n_candidates=n_candidates, verbose=True
+    )
+    best_params = candidates[best_idx]
+    if return_history:
+        return best_params, rewards
+    return best_params
 
 if __name__ == '__main__':
     M_train = np.array([
@@ -148,5 +205,12 @@ if __name__ == '__main__':
 
     #Find the best parameters that has the highest reward
     bounds = np.array([ROT_BOUNDS, LIF_BOUNDS, DUR_BOUNDS, KP_BOUNDS, KD_BOUNDS])
-    best_params = find_best_params(model_distance, model_heading, bounds)
+    
+    
+    plot_loss_function(model_distance, model_heading)
+
+    best_params, rewards = find_best_params(
+        model_distance, model_heading, bounds, n_candidates=10000, return_history=True
+    )
     print(f"Best Parameters: {best_params}")
+    plot_reward_function(rewards)
