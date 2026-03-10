@@ -57,7 +57,7 @@ def gen_params(n_trials, train_ratio=0.7, validate_ratio=0.2, test_ratio=0.1):
 def reward_function(params, pred_distance, pred_heading):
     # For simplicity, we define the reward as a weighted sum of distance and heading
     distance_weight = 0.8
-    heading_weight = 1
+    heading_weight = 1.5
 
     pred_d = float(pred_distance.predict(params).reshape(-1)[0])
     pred_h = float(pred_heading.predict(params).reshape(-1)[0])
@@ -143,7 +143,7 @@ def sample_reward_history(pred_distance, pred_heading, bounds, n_candidates=1000
 def find_best_params(pred_distance, pred_heading, bounds, n_candidates=10000, return_history=False):
 
     candidates, rewards, best_idx = sample_reward_history(
-        pred_distance, pred_heading, bounds, n_candidates=n_candidates, verbose=True
+        pred_distance, pred_heading, bounds, n_candidates=n_candidates, verbose=False
     )
     best_params = candidates[best_idx]
     if return_history:
@@ -158,7 +158,7 @@ def load_dataset(json_path="data/gait_dataset.json"):
     with dataset_path.open("r", encoding="utf-8-sig") as f:
         data = json.load(f)
 
-    M_train = np.array(data["M_train"][:31], dtype=float)
+    M_train = np.array(data["M_train"], dtype=float)
     M_validate = np.array(data["M_validate"], dtype=float)
     M_test = np.array(data["M_test"], dtype=float)
 
@@ -170,7 +170,7 @@ def load_dataset(json_path="data/gait_dataset.json"):
     y_heading_test = np.array(data["y_heading_test"], dtype=float)
 
     if len(y_distance_train) != len(y_heading_train):
-        raise ValueError("Distance and heading data collection has different length.")
+        raise ValueError(f"Distance and heading data collection has different length ({len(y_distance_train)}, {len(y_heading_train)}).")
 
     return (
         M_train,
@@ -197,7 +197,7 @@ if __name__ == '__main__':
         y_heading_test,
     ) = load_dataset()
 
-    # validate successful generation of params
+    # validate successful loading of params
     print("==Training Params==")
     print(M_train)
     print("==Validating Params==")
@@ -211,17 +211,16 @@ if __name__ == '__main__':
     best_deg_dist, best_mod_dist, dist_results = pr.choose_best_degree(
         M_train, y_distance_train,
         M_validate, y_distance_validate,
-        degree_candidates, alpha=0.01, iterations=2000
+        degree_candidates, alpha=0.01, iterations=1000
     )
 
     best_deg_head, best_mod_head, head_results = pr.choose_best_degree(
         M_train, y_heading_train,
         M_validate, y_heading_validate,
-        degree_candidates, alpha=0.01, iterations=2000
+        degree_candidates, alpha=0.01, iterations=1000
     )
 
-    print("Best degree (distance):", best_deg_dist)
-    print("Best degree (heading):", best_deg_head)
+    
 
     # final training dataset includes both training and validation data to maximize data for final model training before testing
     M_final = np.vstack([M_train, M_validate])
@@ -229,8 +228,8 @@ if __name__ == '__main__':
     y_head_final = np.concatenate([y_heading_train, y_heading_validate])
 
     # Create the model for both distance and heading
-    model_distance = pr.Polynomial_Regression(degree=best_deg_dist, alpha=0.01, iterations=2000)
-    model_heading = pr.Polynomial_Regression(degree=best_deg_head, alpha=0.01, iterations=2000)
+    model_distance = pr.Polynomial_Regression(degree=best_deg_dist, alpha=0.01, iterations=1000)
+    model_heading = pr.Polynomial_Regression(degree=best_deg_head, alpha=0.01, iterations=1000)
 
     #Training two models
     print("Training model for distance...")
@@ -240,12 +239,22 @@ if __name__ == '__main__':
 
     #Find the best parameters that has the highest reward
     bounds = np.array([ROT_BOUNDS, LIF_BOUNDS, DUR_BOUNDS, KP_BOUNDS, KD_BOUNDS])
-    
-
-    plot_loss_function(model_distance, model_heading)
-
     best_params, rewards = find_best_params(
         model_distance, model_heading, bounds, n_candidates=10000, return_history=True
     )
-    print(f"Best Parameters: {best_params}")
+    #loss plots
+    plot_loss_function(model_distance, model_heading)
     plot_reward_function(rewards)
+
+    #Testing output
+    print(f"Degree (distance) Results: {dist_results}")
+    print(f"Degree (heading) Results: {head_results}")
+
+
+    print("Best degree (distance):", best_deg_dist)
+    print("Best degree (heading):", best_deg_head)
+    print(f"Best Parameters: {best_params}")
+
+
+
+    

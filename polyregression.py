@@ -95,9 +95,9 @@ def choose_best_degree(M_train, y_train, M_validate, y_validate, degree_candidat
     y_validate = np.asarray(y_validate)
 
     if M_train.shape[0] != y_train.shape[0]:
-        raise ValueError("Distance and heading data collection has different length.")
+        raise ValueError(f"TRAIN: Distance and heading data collection has different length ({M_train.shape[0]} vs {y_train.shape[0]}).")
     if M_validate.shape[0] != y_validate.shape[0]:
-        raise ValueError("Distance and heading data collection has different length.")
+        raise ValueError("VALIDATION: Distance and heading data collection has different length.")
     if len(degree_candidates) == 0:
         raise ValueError("degree_candidates cannot be empty.")
 

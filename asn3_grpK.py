@@ -152,7 +152,7 @@ def tripod(dur=0.3, pu=0.3, lif=100, rot=105):
     rotation = rot
 
     t0 = time.perf_counter()
-    print(f"Start of the Cycle Gait: {s.getdistance()}")
+    print(f"Start of the Cycle Gait: {s.getDistance()}")
 
     board.bus_servo_set_position(duration, [
         [RB_MIDDLE_ID, RB_MIDDLE_DEFAULT - lift],
@@ -196,7 +196,7 @@ def tripod(dur=0.3, pu=0.3, lif=100, rot=105):
         [LF_MIDDLE_ID, LF_MIDDLE_DEFAULT]
     ])  # Putting down
     time.sleep(pause)
-    print(f"End of the Cycle Gait: {s.getdistance()}")
+    print(f"End of the Cycle Gait: {s.getDistance()}")
 
 def turn_left(dur, pu, rot, lif):
     duration = dur
@@ -299,9 +299,14 @@ def turn_around_180():
 
 
 if __name__ == "__main__":
+
     set_all_default()
     
     start_time = time.time()
+
+    
+
+
 
     
 
