@@ -38,3 +38,16 @@ htmlcov/
 
 # Jupyter
 .ipynb_checkpoints/
+
+#reports
+reports/
+
+#data
+data/
+
+
+
+#Robot modules
+cs_me_301_pi5/
+
+
